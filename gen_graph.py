@@ -88,7 +88,7 @@ def get_number_nn(nodes, connections):
     nn = []
     for i in range(len(nodes)):
         nn.append(len([edge for edge in connections if i in edge]))
-    return np._ArrayComplex_co(nn)/2
+    return np.array(nn)/2
 
 if __name__ == "__main__":
     # params
@@ -96,6 +96,8 @@ if __name__ == "__main__":
     n_graphs = 100
     noise_level = 0.1
     
+    import time
+    start = time.time()
     # Generate square lattices
     scale = 1
     angle = 90
@@ -125,5 +127,6 @@ if __name__ == "__main__":
     connections = np.array([get_hex_connections(nodes, size) for i in range(n_graphs)])
     nn = np.array([get_number_nn(nodes[i], connections[i]) for i in range(n_graphs)])
     np.savez(f'graphs/hex.npz', attr=nn, coords=nodes, edge_attr=[], edges=connections)
-    
-    print('Done!')
+
+    stop = time.time()
+    print(f'Done! Process took {stop-start:.1f} seconds')
