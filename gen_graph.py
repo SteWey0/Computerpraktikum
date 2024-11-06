@@ -90,6 +90,19 @@ def get_number_nn(nodes, connections):
         nn.append(len([edge for edge in connections if i in edge]))
     return np.array(nn)/2
 
+def get_edge_attrs(nodes, connections):
+    '''
+    Function that returns the edge attributes for each edge in the graph. It takes the following arguments:
+    - nodes (arr): The array of nodes
+    - connections (arr): The array of connections
+    '''
+    cons_start = connections[0,:]
+    cons_end = connections[1,:]
+    edge_vectors = nodes[cons_start]-nodes[cons_end]
+    return nodes[connections[0,:]]-nodes[connections[1,:]]
+
+
+
 if __name__ == "__main__":
     # params
     size = [10,10]
@@ -105,8 +118,11 @@ if __name__ == "__main__":
     nodes = np.array([get_nodes(e1,e2, size) for i in range(n_graphs)])
     nodes = add_noise(nodes, noise_level)
     connections = np.array([get_connections(nodes, size) for i in range(n_graphs)])
-    nn = np.array([get_number_nn(nodes[i], connections[i]) for i in range(n_graphs)])
-    np.savez(f'graphs/sq.npz', attr=nn, coords=nodes, edge_attr=[], edges=connections)
+    nn = np.array([get_number_nn(nodes[i], connections[i]) for i in range(n_graphs)]).reshape((n_graphs, size[0]*size[1], 1))
+    y = np.stack([np.array([[1,0,0]]) for i in range(n_graphs)], axis=0)
+    edge_attr = [get_edge_attrs(nodes[i], connections[i]) for i in range(len(nodes))]
+    edge_attr = np.array(edge_attr)
+    np.savez(f'graphs/sq.npz', attr=nn, coords=nodes, edge_attr=edge_attr, edges=connections, y=y)
         
     # Generate rectangular lattices
     scale = 1
@@ -115,8 +131,11 @@ if __name__ == "__main__":
     nodes = np.array([get_nodes(e1,e2, size) for i in range(n_graphs)])
     nodes = add_noise(nodes, noise_level)
     connections = np.array([get_connections(nodes, size) for i in range(n_graphs)])
-    nn = np.array([get_number_nn(nodes[i], connections[i]) for i in range(n_graphs)])
-    np.savez(f'graphs/rect.npz', attr=nn, coords=nodes, edge_attr=[], edges=connections)
+    nn = np.array([get_number_nn(nodes[i], connections[i]) for i in range(n_graphs)]).reshape((n_graphs, size[0]*size[1], 1))
+    y = np.stack([np.array([[0,1,0]]) for i in range(n_graphs)], axis=0)
+    edge_attr = [get_edge_attrs(nodes[i], connections[i]) for i in range(len(nodes))]
+    edge_attr = np.array(edge_attr)
+    np.savez(f'graphs/rect.npz', attr=nn, coords=nodes, edge_attr=edge_attr, edges=connections, y=y)
 
     # Generate hexagonal lattices
     scale = 1
@@ -125,8 +144,11 @@ if __name__ == "__main__":
     nodes = np.array([get_nodes(e1,e2, size) for i in range(n_graphs)])
     nodes = add_noise(nodes, noise_level)
     connections = np.array([get_hex_connections(nodes, size) for i in range(n_graphs)])
-    nn = np.array([get_number_nn(nodes[i], connections[i]) for i in range(n_graphs)])
-    np.savez(f'graphs/hex.npz', attr=nn, coords=nodes, edge_attr=[], edges=connections)
+    nn = np.array([get_number_nn(nodes[i], connections[i]) for i in range(n_graphs)]).reshape((n_graphs, size[0]*size[1], 1))
+    y = np.stack([np.array([[0,0,1]]) for i in range(n_graphs)], axis=0)
+    edge_attr = [get_edge_attrs(nodes[i], connections[i]) for i in range(len(nodes))]
+    edge_attr = np.array(edge_attr)
+    np.savez(f'graphs/hex.npz', attr=nn, coords=nodes, edge_attr=edge_attr, edges=connections, y=y)
 
     stop = time.time()
     print(f'Done! Process took {stop-start:.1f} seconds')
