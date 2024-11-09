@@ -146,6 +146,8 @@ class PlaneGraphDataset(tg.data.Dataset):
         # skew_angle = rng.uniform(-10, 10)
         # nodes += np.stack((nodes[:,1]/np.tan(np.radians(90 + skew_angle)), np.zeros_like(nodes[:,1])), axis=1)
         
+        # Set average distance between nodes for later use:
+        self.avg_dist = scale+noise_level
         # For now, no alterations to connections
         connections = self.square_cons
         return nodes, connections
@@ -161,6 +163,8 @@ class PlaneGraphDataset(tg.data.Dataset):
         # skew_angle = rng.uniform(-10, 10)
         # nodes += np.stack((nodes[:,1]/np.tan(np.radians(90 + skew_angle)), np.zeros_like(nodes[:,1])), axis=1)
         
+        # Set average distance between nodes for later use:
+        self.avg_dist = np.mean(scale)+noise_level
         # For now, no alterations to connections
         connections = self.square_cons
         return nodes, connections
@@ -176,12 +180,42 @@ class PlaneGraphDataset(tg.data.Dataset):
         # skew_angle = rng.uniform(-10, 10)
         # nodes += np.stack((nodes[:,1]/np.tan(np.radians(90 + skew_angle)), np.zeros_like(nodes[:,1])), axis=1)
         
+        # Set average distance between nodes for later use:
+        self.avg_dist = scale+noise_level
         # For now, no alterations to connections
         connections = self.hex_cons
         return nodes, connections
     
     def _get_edge_attr(self, pos, edge_index):
         pass
-    def _get_node_attr(self, pos, edge_index):
-        pass
     
+    def _get_node_attr(self, pos, edge_index):
+        # Get number of nodes within typical radius around each node
+        diff = pos[:,np.newaxis,:] - pos[np.newaxis,:,:] # Use of broadcasting to get [4,4,2] array -> difference vectors between all 4x4 node pairs
+        dist = np.linalg.norm(diff, axis=2) # Get the lenght of the difference vectors
+        neighbor_counts = np.sum((dist <= self.avg_dist) & (dist > 0), axis=1) # Collapse the dist matrix and count the times where the distance is within the typical radius
+        
+        # Get the number of connections for each node
+        connection_counts = np.zeros(len(pos))
+        for edge in edge_index[0]:
+            # Iterate over all edge start points and count the connections for each node. Start points sufficient, as connections are bidirectional.
+            connection_counts[edge] += 1 
+        return np.stack((neighbor_counts, connection_counts), axis=1)
+    
+    def _add_defects(self, pos, edge_index):
+        # Draw up to 10% of unique random indices for nodes to be removed
+        drop_indices = rng.choice(np.arange(len(nodes)), rng.integers(len(nodes)//10), replace=False)
+        # Remove the nodes
+        pos = np.delete(pos, drop_indices, axis=0)
+        # Delete every connection that refers to a removed node
+        edge_index = np.delete(edge_index, np.where(np.isin(edge_index, drop_indices))[1], axis=1)
+        
+        # As edge_index refers to the original node indices, we need to adjust the indices of most connections
+        # For this we create a mapping from old indices to new indices
+        old_to_new = np.arange(len(pos) + len(drop_indices))  # Start with an array of original indices; [0,1,2,3,4,5,...]
+        old_to_new[drop_indices] = -1  # Mark the indices of the nodes to be deleted; eg. drop_indices = [1,3] -> [0,-1,2,-1,4,5,...]
+        old_to_new = np.cumsum(old_to_new != -1) - 1  # Create a cumulative sum array; cumsum([True, False, True, False, True, True,...]) -1 -> [1,1,2,2,3,4,...] -1 -> [0,0,1,1,2,3,...]
+        
+        # # Update edge indices to reflect new node indices through broadcasting magic
+        edge_index = old_to_new[edge_index]
+        return pos, edge_index
