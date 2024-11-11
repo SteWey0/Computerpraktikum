@@ -1,1 +1,4 @@
 pytorch_examples/
+graphs/
+plane_graphs/
+__pycache__/
