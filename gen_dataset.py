@@ -71,34 +71,31 @@ class PlaneGraphDataset(tg.data.Dataset):
                 self._add_defects()
                 edge_attr = self._get_edge_attr()
                 node_attr = self._get_node_attr()
-                label = torch.tensor([[1,0,0]])
+                label = torch.tensor([[1,0,0]], dtype=torch.float)
             elif n%3 == 1:
                 # rectangular lattice
                 self._rect_graph()
                 self._add_defects()
                 edge_attr = self._get_edge_attr()
                 node_attr = self._get_node_attr()
-                label = torch.tensor([[0,1,0]])
+                label = torch.tensor([[0,1,0]], dtype=torch.float)
             else:
                 # hexagonal lattice
                 self._hex_graph()
                 self._add_defects()
                 edge_attr = self._get_edge_attr()
                 node_attr = self._get_node_attr()
-                label = torch.tensor([[0,0,1]])
+                label = torch.tensor([[0,0,1]], dtype=torch.float)
             
             # Create data object:
             data = tg.data.Data(x          = torch.tensor(node_attr, dtype=torch.float), 
-                                edge_index = torch.tensor(self.edge_index, dtype=torch.int), 
+                                edge_index = torch.tensor(self.edge_index, dtype=torch.int64), 
                                 edge_attr  = torch.tensor(edge_attr, dtype=torch.float), 
                                 y          = label, 
                                 pos        = torch.tensor(self.pos, dtype=torch.float))
             # Save data object:
             torch.save(data, os.path.join(self.processed_dir, 'data_{:04d}.pt'.format(n)))
     
-    #TODO:
-    # Idea is now differnet. Start by creating normal square and hex lattices with connections in ugly and inefficiert way.
-    # Save as class attributes. In the _get_* methods these standard graphs are muted by simple and efficient array operations. See test.ipynb
     def _set_standard_graphs(self):
         '''
         This helper method is used to set standard square and hexagonal lattices with connections. 
@@ -263,6 +260,3 @@ class PlaneGraphDataset(tg.data.Dataset):
         
         # # Update edge indices to reflect new node indices through broadcasting magic
         self.edge_index = old_to_new[self.edge_index]
-
-
-PlaneGraphDataset(root = 'plane_graphs', n_graphs_per_type=100).process()
