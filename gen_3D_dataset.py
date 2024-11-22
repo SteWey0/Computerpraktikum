@@ -88,19 +88,20 @@ class ThreeDGraphDataset(tg.data.Dataset):
             data = tg.data.Data(x          = torch.tensor(node_attr, dtype=torch.float), 
                                 edge_index = torch.tensor(edge_index, dtype=torch.int64), 
                                 edge_attr  = torch.tensor(edge_attr, dtype=torch.float), 
-                                y          = torch.tensor([label], dtype=torch.float), 
+                                y          = torch.tensor(label, dtype=torch.float), 
                                 pos        = torch.tensor(pos, dtype=torch.float))
             # Save data object:
             torch.save(data, os.path.join(self.processed_dir, 'data_{:05d}.pt'.format(n)))
 
 
-    def _get_P_nodes(self):
+    def _get_P_nodes(self, angles=np.array([90,90,90])):
         '''
         Get the nodes of a primitive lattice.
         '''
+        scaling = np.sin(np.radians(angles))
         vec1 = np.arange(0,self.size[0],1)
-        vec2 = np.arange(0,self.size[1],1)
-        vec3 = np.arange(0,self.size[2],1)
+        vec2 = np.arange(0,self.size[1]*scaling[2],1*scaling[2])
+        vec3 = np.arange(0,self.size[2]*scaling[1],1*scaling[1])
         a, b, c = np.meshgrid(vec1,vec2, vec3)
         nodes = np.stack([a,b,c],axis=-1) # Stack them in a new axis
         nodes = np.reshape(nodes, (-1, 3)) # Reshape to an arr of nodes with shape (#nodes, 3)
@@ -142,15 +143,20 @@ class ThreeDGraphDataset(tg.data.Dataset):
             - scale: A list of scaling factors [x,y,z] for the lattice type. 0 means to generate a random scaling factor (0,2)
             - label: One hot encoded label for the lattice type
         '''
-        # Get the fundamental lattice nodes
-        nodes = arg_dict['nodes']()
-        # Shear the lattice to match the given type
+        # Get lattice angles
         angles = np.array(arg_dict['binding_angles'])
         if arg_dict['name'] == 'hR':
             # Special case for hR lattice as it has 3 identical but random angles
-            angles = np.where(angles == 0, rng.uniform(1,179,1), angles)
+            angles = np.where(angles == 0, rng.uniform(46,89,1), angles)
         else:
-            angles = np.where(angles == 0, rng.uniform(0,179,3), angles)
+            angles = np.where(angles == 0, rng.uniform(46,89,3), angles)
+            
+        # Get the fundamental lattice nodes
+        if arg_dict['name'] in ['hR', 'hP']:
+            # For hR and hP lattices we need to give the angles to the nodes method so that sheared connections are equally long
+            nodes = arg_dict['nodes'](angles)
+        else:
+            nodes = arg_dict['nodes']()
         nodes = self._shear_nodes(nodes, angles)
         # Find random scale and apply gaussian noise to the lattice accordingly
         scale = np.array(arg_dict['scale'])
@@ -158,15 +164,15 @@ class ThreeDGraphDataset(tg.data.Dataset):
         noise_level = 0.05 / scale  # At this step we scale the noise down, so that the scaling later on does not affect the noise level
         nodes += rng.normal(0, noise_level, nodes.shape)
         # Find the connections between the nodes in a given radius
-        cons= self._get_cons_in_radius(nodes, 1.01+np.mean(noise_level))
+        cons= self._get_cons_in_radius(nodes, 1.2+np.mean(noise_level))
         # Apply the saved scaling
         nodes *= scale
         
         # Add defects to the lattice
-        nodes, cons = self._add_defects(nodes, cons)
-        return nodes, cons, np.array(arg_dict['label'])
+        #nodes, cons = self._add_defects(nodes, cons)
+        return nodes, cons, np.array([arg_dict['label']])
 
-    def _get_cons_in_radius(self, nodes, radius=1.01):
+    def _get_cons_in_radius(self, nodes):
         '''
         Get the connections in a radius as well as the total number of cons for each node.
         '''
@@ -220,7 +226,7 @@ class ThreeDGraphDataset(tg.data.Dataset):
             # Iterate over all edge start points and count the connections for each node. Start points sufficient, as connections are bidirectional.
             connection_counts[edge] += 1 
             
-        return connection_counts
+        return np.expand_dims(connection_counts, axis=1)
     
     def _get_edge_attr(self,nodes,cons):
         '''
