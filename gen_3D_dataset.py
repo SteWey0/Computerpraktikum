@@ -164,7 +164,7 @@ class ThreeDGraphDataset(tg.data.Dataset):
         noise_level = 0.05 / scale  # At this step we scale the noise down, so that the scaling later on does not affect the noise level
         nodes += rng.normal(0, noise_level, nodes.shape)
         # Find the connections between the nodes in a given radius
-        cons= self._get_cons_in_radius(nodes, 1.2+np.mean(noise_level))
+        cons= self._get_cons_in_radius(nodes, 1.3+np.mean(noise_level))
         # Apply the saved scaling
         nodes *= scale
         
@@ -172,7 +172,7 @@ class ThreeDGraphDataset(tg.data.Dataset):
         #nodes, cons = self._add_defects(nodes, cons)
         return nodes, cons, np.array([arg_dict['label']])
 
-    def _get_cons_in_radius(self, nodes):
+    def _get_cons_in_radius(self, nodes, radius):
         '''
         Get the connections in a radius as well as the total number of cons for each node.
         '''
