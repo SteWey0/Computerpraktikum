@@ -60,7 +60,7 @@ class ThreeDGraphDataset(tg.data.Dataset):
         Here creation, processing and saving of the dataset happens. 
         '''
         # Some attributes for all graphs:
-        self.size = np.array([10,10,10])
+        self.size = np.array([5,5,5])
         lattice_types = {
              0: {'name': 'aP', 'nodes': self._get_P_nodes, 'binding_angles': [  0,   0,   0], 'scale': [0, 0, 0], 'label': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]},
              1: {'name': 'mP', 'nodes': self._get_P_nodes, 'binding_angles': [ 90,   0,  90], 'scale': [0, 0, 0], 'label': [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]},
