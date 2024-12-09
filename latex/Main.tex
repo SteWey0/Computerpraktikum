@@ -226,13 +226,13 @@ In the following graph classification is used, which means all feature vectors a
 The main tasks so far were to gain familiarity with a machine learning Python library by working on graph classification of 2- and 3-dimensional Bravais lattices. 
 For this I chose Pytorch, as it has a library for working with graph neural networks called PyTorch Geometric (PyG) built on top of it. 
 The first step for both cases was to generate the training data. 
-For this I created in a first step perfect Bravais lattices, to which i added random (gaussian) noise, and defects meaning a removal of a random number of nodes at random positions. 
+For this I created in a first step ideal Bravais lattices, to which i added random (gaussian) noise, and defects (meaning a removal of a random number of nodes at random positions). 
 For further variety in training samples, I took care to scale graphs by random constants where suitable to provide non-uniform node-spacing within one Bravais lattice group. 
-After the nodes have been placed and noise was added, the connections between nodes are determined by searching for the neighbours within a given radius (that also depends on the noise am plitude) and connecting all nodes, that lie within said radius. 
+After the nodes have been placed and noise was added, the connections between nodes are determined by searching for the neighbours within a given radius (that also depends on the noise amplitude) and connecting all nodes, that lie within said radius. 
 By these means the random noise and defects are also included within the structure in the graph and have an influence in message passing.
 The size of the graphs have been chosen as follows. 
 For the plane lattices a size of 10 times 10 nodes has been chosen in order to give the network enough information about each training sample to learn something about the Bravais lattice. 
-For the 3D lattices a  size of 10 times 10 times 10 nodes has also been tried but deemed unpractical as the time effort for training is quite large. 
+For the 3D lattices a  size of 10 times 10 times 10 nodes has been tried but deemed unpractical as the time effort for training is quite large. 
 This in turn leads to only beeing able to use a low number of training samples and low accuracies of aroung 60\%. 
 A better approached proved to be using graphs of size 5 times 5 times 5 nodes which cuts the total number of nodes per graph by a factor of 8 while still giving the network enough information to determine the lattice correctly. 
 For node features the number of neighbouring nodes has been chosen while each edge has the (two or three dimensional) connection vector between its corresponding nodes as its feature. 
@@ -247,6 +247,17 @@ As one can see, the chosen GCN is capable in classifying the random Bravais latt
 
 \section{Plans for the future}
 \label{sec:Plans for the future}
+In the following the goals for the remaining part of the project will be discussed and a rough time estimate for each step will be given. 
+As graph generation and classification has worked rather well so far, I expect only little changes to be made to the already existing code. 
+Further things to improve or try out with the existing method are varying node and edge features and choosing different layers or a different network structure. 
+By this investigation one could find out the minimal amount of information the network needs to classify Bravais lattices and the most efficient network architecture. 
+As the tasks discussed so far however only served as a kind of general introduction into the actual topic that is specific to me, extensive experiments with the old goal of lattice classification are not planned. 
+Instead the focus shifts towards a new goal, namely the detection of defects in monoatomic crystals. 
+I expect to be able to reuse significant parts of the lattice generation code I have written so far, although significant changes in the network architecture and features will most likely be made. 
+A meeting with Jonas Buba for discussing the specifics for the future project is scheduled for wednesday, the 11.12. 
+After that I plan to finish the remaining experiments having to do with the old goal of Bravais lattice classification until the end of december. 
+During the same time I want to gain familiarity with the theory and suitable approaches to defect detection by reading literature and starting the first coding experiments. 
+Until the mid of January I plan to finalise the coding part of the project, to be able to focus on writing the report and preparing the final presentation during the remaining time. 
 
 
 %---------------------------------------------------------
