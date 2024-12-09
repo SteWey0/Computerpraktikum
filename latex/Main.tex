@@ -223,6 +223,27 @@ In the following graph classification is used, which means all feature vectors a
 
 \section{Results so far}
 \label{sec:Results so far}
+The main tasks so far were to gain familiarity with a machine learning Python library by working on graph classification of 2- and 3-dimensional Bravais lattices. 
+For this I chose Pytorch, as it has a library for working with graph neural networks called PyTorch Geometric (PyG) built on top of it. 
+The first step for both cases was to generate the training data. 
+For this I created in a first step perfect Bravais lattices, to which i added random (gaussian) noise, and defects meaning a removal of a random number of nodes at random positions. 
+For further variety in training samples, I took care to scale graphs by random constants where suitable to provide non-uniform node-spacing within one Bravais lattice group. 
+After the nodes have been placed and noise was added, the connections between nodes are determined by searching for the neighbours within a given radius (that also depends on the noise am plitude) and connecting all nodes, that lie within said radius. 
+By these means the random noise and defects are also included within the structure in the graph and have an influence in message passing.
+The size of the graphs have been chosen as follows. 
+For the plane lattices a size of 10 times 10 nodes has been chosen in order to give the network enough information about each training sample to learn something about the Bravais lattice. 
+For the 3D lattices a  size of 10 times 10 times 10 nodes has also been tried but deemed unpractical as the time effort for training is quite large. 
+This in turn leads to only beeing able to use a low number of training samples and low accuracies of aroung 60\%. 
+A better approached proved to be using graphs of size 5 times 5 times 5 nodes which cuts the total number of nodes per graph by a factor of 8 while still giving the network enough information to determine the lattice correctly. 
+For node features the number of neighbouring nodes has been chosen while each edge has the (two or three dimensional) connection vector between its corresponding nodes as its feature. 
+This has proven itself to be enough information to classify a test dataset of ramdom graphs with more than 90\% accuracy for both cases. 
+As connection vectors carry quite a lot of information, for future tests other features like connection lengths, binding angles etc. are planned in order to see, how much information about the lattice is needed to suitably classify it. 
+For these preliminary results a high degree of information in the features and shallow neural network (3 GINEConv layers, with <100 neurons total) was used as a proof of concept and to see whether graph generation worked. 
+%cite
+For classification each lattice got its type as a one-hot encoded label that was compared via the use of the categorical cross entropy loss function during the training. 
+In %todo
+the test accuracy over training epoch is shown for both 2D and 3D cases. 
+As one can see, the chosen GCN is capable in classifying the random Bravais lattices in around 90\% of cases and is therefore a promising candidate for further tasks. 
 
 \section{Plans for the future}
 \label{sec:Plans for the future}
