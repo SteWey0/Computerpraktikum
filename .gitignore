@@ -3,3 +3,5 @@ graphs/
 plane_graphs/
 __pycache__/
 3D_graphs/
+defect_graphs/
+autoencoder_graphs/
