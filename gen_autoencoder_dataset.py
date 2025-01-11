@@ -5,6 +5,7 @@ import torch_geometric as tg
 import torch
 from tqdm import trange
 from scipy.spatial import KDTree
+import boo
 
 class AutoencoderDataset(tg.data.Dataset):
     '''
@@ -83,9 +84,10 @@ class AutoencoderDataset(tg.data.Dataset):
             # Get graph features:
             pos, edge_index, label = self._process_lattice(lattice_types[n % 14])
             label = np.expand_dims(label, axis=1)
-            #node_attr = self._get_node_attr(pos, edge_index)
+            node_attr = self._get_node_attr(pos, edge_index)
+            # node_attr = pos
             #edge_attr = self._get_edge_attr(pos, edge_index)
-            node_attr = pos
+            
             # Create data object:
             data = tg.data.Data(x          = torch.tensor(node_attr, dtype=torch.float), 
                                 edge_index = torch.tensor(edge_index, dtype=torch.int64), 
@@ -234,16 +236,15 @@ class AutoencoderDataset(tg.data.Dataset):
     def _get_node_attr(self,nodes,cons):
         '''
         Method that returns the node attributes for each node in the graph. Should be called after creating the graph and adding defects.
-        Returns an array of shape (len(pos) = #Nodes) with the entries [C] for each node.
-            - C: Number of connections to other nodes
+        The node attributes have the shape (num_nodes, num_node_features). For each node, the node features are the following:
+        - The bond orientational order parameters for l=4,6,8,10 (4 features)
         '''
-        # Get the number of connections for each node
-        connection_counts = np.zeros(len(nodes))
-        for edge in cons[0]:
-            # Iterate over all edge start points and count the connections for each node. Start points sufficient, as connections are bidirectional.
-            connection_counts[edge] += 1 
-            
-        return np.expand_dims(connection_counts, axis=1)
+        boo_cons = cons.T[:cons.shape[1]//2] # Get cons in shape (#cons,2) and remove bidirectional connections
+        boo_l4  = boo.ql(boo.bonds2qlm(nodes, boo_cons, l=4)).reshape(nodes.shape[0],1)
+        boo_l6  = boo.ql(boo.bonds2qlm(nodes, boo_cons, l=6)).reshape(nodes.shape[0],1)
+        boo_l8  = boo.ql(boo.bonds2qlm(nodes, boo_cons, l=8)).reshape(nodes.shape[0],1)
+        boo_l10 = boo.ql(boo.bonds2qlm(nodes, boo_cons, l=10)).reshape(nodes.shape[0],1)
+        return np.concatenate((boo_l4,boo_l6,boo_l8,boo_l10),axis=1)
     
     def _get_edge_attr(self,nodes,cons):
         '''
