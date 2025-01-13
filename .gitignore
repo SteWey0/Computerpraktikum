@@ -5,3 +5,4 @@ __pycache__/
 3D_graphs/
 defect_graphs/
 autoencoder_graphs/
+autoencoder_2d/
