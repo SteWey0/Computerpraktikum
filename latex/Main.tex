@@ -89,8 +89,8 @@ sorting=none]{biblatex}
 
 % --------------------------------------------------------
 % CUSTOM STUFF:
-% \usepackage[textsize=tiny]{todonotes}
-% \setlength{\marginparwidth}{2cm}
+\usepackage[textsize=tiny]{todonotes}
+\setlength{\marginparwidth}{2cm}
 \usepackage{bm}
 %---------------------------------------------------------
 \usepackage{hyperref} % enable clickable links to sections, figures, etc. 
@@ -200,6 +200,38 @@ These are depicted in \autoref{fig:bravais2D} and \autoref{fig:bravais3D} respec
     \label{fig:bravais3D}
 \end{figure}
 
+
+\subsection{Basics of Machine Learning}
+\label{ssec:BAsics of Machine Learning}
+In the following the basic principles behind Artificial Neural Networks (NNs) and Machine Learning will be explained. 
+This chapter follows closely the discussion in \cite{kubatChapter5Artificial2017}, the upcoming equations and concepts are therefore taken from this source. 
+For this introduction the simplest model will be used as an example to explain the key concepts, as a generalisation to more sophisticated models is straightforward once the basic principles are understood. 
+This simple model is the so called Perceptron, a network consisting of fully connected units, so called neurons, aranged in layers. 
+This NN consists at least of an in- and output layer which are usually supplemented by one or more hidden layers in between. 
+A neuron $j$ in layer $l$ has as its attribute a feature vector $x^{(l)}_j$ and each connection is associated by a weight $w_{ij}^{(l-1)}$ where this weight represents the connection between neuron $i$ in layer $l-1$ to neuron $j$ in layer $l$. 
+The general idea is that each neuron takes as input the "signals" from every neuron it is connected to in the previous layer (ie. in our example of a fully connected network the signals from every neuron in the prior layer) and updates its own value according to the fololowing weighted sum:
+\begin{equation}
+    \label{eq:NN weighted sum}
+    x^{(l)}_j = f\left(\sum_i w_{ij}^{(l-1)} \cdot x^{(l-1)}_i + b^{(l-1)}\right)
+\end{equation}
+Here the weighted sum is further modified by a layer dependent bias vector $ b^{(l-1)}$. 
+Furthermore the aggregated "signal" is usually modified by an non-linear activation function $f$. 
+Using the above update rule it is now clear, that a forward pass through the model can be accomplished by suppliing an input vector $x^{(1)}_i$ and using \autoref{eq:NN weighted sum} iteratively to achieve an output at the final layer $n$ $x^{(n)}_i$. \\
+
+In this simple supervised training example each input vector $x^{(1)}_i$ is acommpined by a target vector $t_i$ which is the wanted output of the network, given said input vector. 
+For training one must now specify a so called loss function, which represents how far the output of the NN deviates from said target (e.g. the mean squared difference between them). 
+It is apparent that the goal of training must be to minimize said loss. 
+This is done via so called gradient descent where the gradients of the loss function with respect to the model parameters $w_{ij}^{(l-1)}$ and  $ b^{(l-1)}$ is calculated. 
+In the parameter space of these weights and biasses this gradient points toward regions where the loss changes the most. 
+In the process of backpropagation the NN parameters are now updated using these gradients. 
+The algorithm goes backwards through the network (From layer $n$ to $1$) and updates the paramaters using calculated gradients such that the loss is minimized. 
+The magnitude of this update is influenced by the Learning rate $\eta$ which is an important hyperparameter that needs to be set for training. 
+How this update works in detail goes beyond the scope of this introduction, further details can for example be found in \cite{kubatChapter5Artificial2017}. 
+Once this training is completed for all input training samples one epoch of training has been completed. 
+Usually the training of a NN is repeated for many epochs. \\
+
+Lastly, once the training was deemed sufficient, one used a different, so called validation dataset, which was not used during training to asess the final performance metric of the model. 
+
 \subsection{Graph neural networks}
 \label{ssec:Graph neural networks}
 The lattices as discussed in the prior section are a collection of atoms linked by bonds and can therefore be suitably represented by a graph, consisting of nodes and edges. 
@@ -228,8 +260,63 @@ In the following graph classification is used, which means all feature vectors a
     \label{fig:messagepasisng}
 \end{figure}
 
+\todo{SSec (graph) autoencoders}
+
+\section{Results}
+\label{sec:Results}
+In the following I will give a chronological overview of the topics I worked on during this project. 
+This started with the generation of training data, namely Bravais lattices in two and three dimesions. After this I worked on Bravais lattice classification of noisy and defective lattices to gain familiarity with the GNN architecture and a Machine Learning library. Lastly I worked on defect detection using Graph Autoencoders. 
+
+\subsection{Generation of Training data}
+\label{ssec:Generation of training data}
+As a first step Bravais lattices in two dimensions (2D) and three dimensions (3D) needed to be created. 
+For this ideal Bravais lattices with roughly a unit spacing between nodes are created in a first step. 
+Additionally random Gaussian noise is added. 
+For further variety in training samples, graphs are additionally scaled by random constants to provide non-uniform node-spacing within one Bravais lattice group. 
+At this step different kids of defects are introduced. 
+These defects either are a removal of randomly many nodes at random positions or the addition of a single, randomly placed node within the lattice. 
+What kind of process has been used will be explained in detail in the following sections, as it is dependent on the task at hand. 
+After the nodes have been placed, noise was added and defects were introduced, the connections between nodes are determined by searching for the neighbours within a given radius (that also depends on the noise amplitude) and connecting all nodes, that lie within said radius. 
+By these means the random noise and defects are also included within the structure of the graph and have an influence in message passing. \\
+
+The features used depend on the task of the GNN -- either graph classification into one of the Bravais lattice groups or defect detection. 
+In the following a in-depth overview over all different features used is given such that the later sections can focus on the Neural Network part. \\
+As edge features a selection of the following was used: 
+\begin{itemize}
+    \item The 2D or 3D connection vectors between nodes
+    \item Their respective length
+\end{itemize}
+The node features tested are the following:
+\begin{itemize}
+    \item The amount of nearest neighbors i.e. the count of connected nodes
+    \item The bond orientational order parameter (BOO)\\
+    As the name suggests the BOO quantifies the "order" of the bonds around a node. 
+    It can be computed for different orders $l$ and can be used to differenciate between different crystal sructures by quantifying their $l$-fold symmetry, see e.g. \cite{steinhardtBondorientationalOrderLiquids1983}. 
+    Importantly symmetry is broken near defects, which is why the BOO seems a promising node feature for defect detection. 
+    In 2D the BOO of node $j$ and order $l$ is given by
+    \begin{equation}
+        \mathrm{BOO^{2D}}_j = \left|\frac{1}{N} \sum_k \mathrm{exp}(il\theta_{jk}) \right|^2
+    \end{equation}
+    Where we sum over all $N$ neighbors $k$ of node $j$ and $\theta_{jk}$ represents the angle of the $j$-$k$-connection with resprect to some reference direction. \\
+    In 3D I used was one of the rotational invariants defined as 
+    \begin{equation}
+        \mathrm{BOO^{3D}}_j = \sqrt{\frac{4\pi}{2l+1} \sum_{m=-l}^{l} \left| \frac{1}{N} \sum_k Y_{lm}\right|^2}
+    \end{equation} 
+    Here the sum ranges again over all neighbors $k$ and adds the spherical harmonics $Y_{lm}$ dependent on the given order of the BOO and the angles between nodes $j$ and $k$ and an arbitrary refrence direction. 
+    \todo{CITATIONS}
+    As symmetry is also broken at the edges of the generated graphs, for the calculation I take care to apply sufficient padding of extra nodes around the graph (which are later removed) in order to mitigate edge effects. 
+\end{itemize}
+
+
 \section{Results so far}
 \label{sec:Results so far}
+\todo{ Wie groß war der Datensatz? Wie wurde er aufgeteilt für
+Training/Validation}
+\todo{Wie lief der Trainingsprozess ab? (Optimizer, batchsize, learning
+rate etc., gerne loss/accuracy plotten)}
+\todo{ * Verwendete Layer und Aufbau des Netzes beschreiben (welche Methode
+wurde für das Pooling verwendet? wie kommen wir vom Pooling zu
+unserer Wahrscheinlichkeitsverteilung der Gittertypen?)}
 The main tasks so far were to gain familiarity with a machine learning Python library by working on graph classification of 2- and 3-dimensional Bravais lattices. 
 For this I chose PyTorch, as it has a library for working with graph neural networks called PyTorch Geometric (PyG) built on top of it. 
 The first step for both cases was to generate the training data. 
