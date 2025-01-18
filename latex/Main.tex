@@ -298,7 +298,7 @@ The node features tested are the following:
         \mathrm{BOO^{2D}}_j = \left|\frac{1}{N} \sum_k \mathrm{exp}(il\theta_{jk}) \right|^2
     \end{equation}
     Where we sum over all $N$ neighbors $k$ of node $j$ and $\theta_{jk}$ represents the angle of the $j$-$k$-connection with resprect to some reference direction. \\
-    In 3D I used was one of the rotational invariants defined as 
+    In 3D I used one of the rotational invariants defined as 
     \begin{equation}
         \mathrm{BOO^{3D}}_j = \sqrt{\frac{4\pi}{2l+1} \sum_{m=-l}^{l} \left| \frac{1}{N} \sum_k Y_{lm}\right|^2}
     \end{equation} 
@@ -306,6 +306,61 @@ The node features tested are the following:
     \todo{CITATIONS}
     As symmetry is also broken at the edges of the generated graphs, for the calculation I take care to apply sufficient padding of extra nodes around the graph (which are later removed) in order to mitigate edge effects. 
 \end{itemize}
+
+\subsection{Bravais lattice classification}
+\label{ssec:Bravais lattice classification}
+
+\subsection{Defect detection}
+\label{ssec:Defect detection}
+The next goal was to build a GNN tasked with defect detection in 2D lattices. 
+For this data was generated as described in \autoref{ssec:Generation of training data}. 
+As node features I chose the BOO for orders 4,6,8,10 \todo{orders} and the number of nearest neighbors. 
+A scalar edge feature is also supported by the network architecture that will be shown in the following, hence I chose the length of the edge. 
+Per graph one defect was added by adding an additional node at a random position. 
+This defect node is different than the others both on a structural level (higher connectivity than the rest of the graph) but also on an attribute level (It breaks symmetry which has influence on the BOO, additionally, on average, the lenght of connected edges is smaller and the number of neighbors higher). \\
+\todo{das muss komplett überarbeitet werden...}
+
+For this I was tasked to implement and test the Dominant network as described in \cite{dingDeepAnomalyDetection2019}. 
+This network uses a Graph Autoencoder i.e. an Autoencoder consisting of Message passing layers to handle graphs. 
+Autoencoders are a NN that utilises unsupervised training. 
+The goal of this type of network is to reconstruct an the input data as best as possible. 
+This task would be trivial if it were not for an important feature of autoencoders: 
+The hidden layers reduce in dimensionality until a minimum number of trainable parameters is reached at the so called bottleneck after which the dimensionality again increases until the input dimensionality. 
+It is expected that this compression and de-compression works better for large scale recurring structures (e.g. a periodic arrangement of nodes) then for outliers (e.g. the defect node) which makes this approach promising for the task at hand \cite{dingDeepAnomalyDetection2019}. 
+A sketch of the structure of the Dominant network is shown in \autoref{fig:Dominant}.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/ding_1.png}
+    \caption{A sketch of the structure of the Dominant network is shown. Taken from \cite[Fig.1]{dingDeepAnomalyDetection2019}}
+    \label{fig:Dominant}
+\end{figure}
+A training set of graphs with outliers is first input into the Encoder. 
+This encoder consists of Message passing layers that reduce in feature dimensionality until the bottleneck is reached. 
+The graph data is maximally compressed into a so called Embedding Vector $z$. 
+This is then decoded in two different decoders: 
+The Structure Reconstruction Decoder aims to reproduce the input adjacency matrix \todo{whats an adj matrix} (consisting of edges and their features) of the graph. 
+This is done by calculating the matrix product of the column vector $z$ with the row vector $z^T$ leading to a matrix of shape $N\cross N$ where $N$ is the number of nodes. 
+This can be interpreted as an adjacency matrix. 
+Furthermore a non-linear activation function (like a sigmoid) can be applied, if the edge features lie in the range $(0,1)$ or if there are no edge features. 
+Additionally the Attribute Reconstruction Decoder aims to reproduce the nodal features of the input graph. 
+This is done by an additional GNN which increases in feature dimensionality. 
+Usually one chooses the Encoder and Decoder network symmetrically. 
+After getting both reconstructions a loss can be calculated (this is not shown in \autoref{fig:Dominant}) with which the model is trained\cite{dingDeepAnomalyDetection2019}:
+\begin{equation}
+    \label{eq:dominant loss}
+    \mathcal{L} = (1-\alpha) \left\lVert A-\hat{A} \right\rVert _F^2 + \alpha  \left\lVert X-\hat{X} \right\rVert _F^2
+\end{equation}
+Here $\alpha$ is a fixed hyperparamter weighting the Attribute versus the Reconstruction loss, $A$ and $\hat{A}$ are the input and reconstructed adjacency matrices, $X$ and $\hat{X}$ the input and recostructed node feature matrices and the symbol $\left\lVert\cdot  \right\rVert _F$ represents the Frobenius norm. 
+
+Once training is deemed sufficient, a final anomaly score can be calculated for each node $i$ to evalute the model \cite{dingDeepAnomalyDetection2019}:
+\begin{equation}
+    \label{eq:dominant score}
+    \mathcal{S}_i = (1-\alpha) \left\lVert a_i-\hat{a_i} \right\rVert _2 + \alpha  \left\lVert x_i-\hat{x_i} \right\rVert _2
+\end{equation}
+Here $a_i$, $\hat{a}_i$, $x_i$, $\hat{x}_i$ represent the rows of the matrices $A$, $\hat{A}$, $X$, $\hat{X}$ resprectively and $\left\lVert\cdot  \right\rVert _2$ represents the usual vector 2-norm. 
+Note that while \autoref{eq:dominant loss} and \autoref{eq:dominant score} look rather similar, they are not quite the same. 
+The loss function copmputes a single scalar loss for each input graph and is used during training. 
+The score function computes one scalar anomaly score for each node in the graph and is only used for the defect prediction at the end, as larger anomaly scores represent a higher probability of the node beeing an outlier. 
 
 
 \section{Results so far}
