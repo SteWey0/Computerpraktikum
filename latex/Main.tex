@@ -92,6 +92,18 @@ sorting=none]{biblatex}
 \usepackage[textsize=tiny]{todonotes}
 \setlength{\marginparwidth}{2cm}
 \usepackage{bm}
+\usepackage{tikz}
+\newcommand{\no}{%
+\tikz[scale=0.23] {
+    \draw[line width=0.7,line cap=round] (0,0) to [bend left=6] (1,1);
+    \draw[line width=0.7,line cap=round] (0.2,0.95) to [bend right=3] (0.8,0.05);
+}}
+\newcommand{\yes}{%
+\tikz[scale=0.23] {
+    \draw[line width=0.7,line cap=round] (0.25,0) to [bend left=10] (1,1);
+    \draw[line width=0.8,line cap=round] (0,0.35) to [bend right=1] (0.23,0);
+}}
+\usepackage[table]{xcolor}
 %---------------------------------------------------------
 \usepackage{hyperref} % enable clickable links to sections, figures, etc. 
 \PassOptionsToPackage{unicode}{hyperref}
@@ -260,7 +272,6 @@ In the following graph classification is used, which means all feature vectors a
     \label{fig:messagepasisng}
 \end{figure}
 
-\todo{SSec (graph) autoencoders}
 
 \section{Results}
 \label{sec:Results}
@@ -295,6 +306,7 @@ The node features tested are the following:
     Importantly symmetry is broken near defects, which is why the BOO seems a promising node feature for defect detection. 
     In 2D the BOO of node $j$ and order $l$ is given by
     \begin{equation}
+        \label{eq:boo2d}
         \mathrm{BOO^{2D}}_j = \left|\frac{1}{N} \sum_k \mathrm{exp}(il\theta_{jk}) \right|^2
     \end{equation}
     Where we sum over all $N$ neighbors $k$ of node $j$ and $\theta_{jk}$ represents the angle of the $j$-$k$-connection with resprect to some reference direction. \\
@@ -312,17 +324,31 @@ The node features tested are the following:
 
 \subsection{Defect detection}
 \label{ssec:Defect detection}
-The next goal was to build a GNN tasked with defect detection in 2D lattices. 
-For this data was generated as described in \autoref{ssec:Generation of training data}. 
-As node features I chose the BOO for orders 4,6,8,10 \todo{orders} and the number of nearest neighbors. 
-A scalar edge feature is also supported by the network architecture that will be shown in the following, hence I chose the length of the edge. 
-Per graph one defect was added by adding an additional node at a random position. 
-This defect node is different than the others both on a structural level (higher connectivity than the rest of the graph) but also on an attribute level (It breaks symmetry which has influence on the BOO, additionally, on average, the lenght of connected edges is smaller and the number of neighbors higher). \\
-\todo{das muss komplett überarbeitet werden...}
+\subsubsection{Introduction}
+The next goal was to build a GNN tasked with defect detection in 2D and 3D lattices. 
+As this has proven itself quite hard with the Dominant network I will introduce in the following the present chapter will give an overview over the things I investigated rather than straight-forwardly presenting a positive result. 
+For this the general setup and network architecture is explained in a first step, after which all different tests will be explained. 
+At the end I will discuss possible reasons for the bad performance of the Dominant network and suggest network architectures that are possibly better suited for this task. 
+It should also be remarked that I will focus the following discussion on 2D graphs, firstly because of time constraints due to the extensive tests I needed to do, secondly because it is not helpful or illustrative to investigate more complex and worse visualisable 3D graphs when even the simple 2D cases show bad performance. \\
 
-For this I was tasked to implement and test the Dominant network as described in \cite{dingDeepAnomalyDetection2019}. 
+Data was generated as described in \autoref{ssec:Generation of training data}. 
+As I investigated different feature combinations, the exact features used will be shown for each test specifially. 
+Features were taken out of the feature pool shown in \autoref{ssec:Generation of training data}. 
+Per graph one defect was added by adding an additional node at a random position. 
+This defect node is different than the others both on a structural level (higher connectivity than the rest of the graph) but also on an attribute level (it breaks symmetry which has influence on the BOO, additionally, on average, the lenght of connected edges is smaller and the number of neighbors higher). \\
+
+I looked at many different network setups, layers and features and therefore needed to keep the training time in a reasonable scope which is why I chose to use 250 graphs for each of the 5 Bravais lattice types. 
+This resulted in a total of 1250 graphs, of which 1000 were used for training and 250 for validation. 
+Each network/feature combination test consisted of training the network over 50 epochs and averaging the results over five different random network initialisations in order to achieve good convergence of the loss-curves and a statistically more meaningful result. 
+For all of the following tests a batchsize of 16 and the Adam optimizer were used. 
+The learning rate was set to 0.001 if not stated differently. 
+If the test used edge features GINEConv layers \cite{pygteamGINEConv2024} were used for the construction of the encoder and attribute decoder, else GCNConv layers \cite{pygteamGCNConv2025} were used.
+As activation functions and the number of neurons and layers were varied, they will be stated when talking about the specific test performed. \\
+
+\subsubsection{The Dominant Architecture}
+I was tasked to implement the Dominant network as described in \cite{dingDeepAnomalyDetection2019}. 
 This network uses a Graph Autoencoder i.e. an Autoencoder consisting of Message passing layers to handle graphs. 
-Autoencoders are a NN that utilises unsupervised training. 
+Autoencoders are a special kind of neural networks that utilise unsupervised training. 
 The goal of this type of network is to reconstruct an the input data as best as possible. 
 This task would be trivial if it were not for an important feature of autoencoders: 
 The hidden layers reduce in dimensionality until a minimum number of trainable parameters is reached at the so called bottleneck after which the dimensionality again increases until the input dimensionality. 
@@ -331,26 +357,27 @@ A sketch of the structure of the Dominant network is shown in \autoref{fig:Domin
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.8\textwidth]{images/ding_1.png}
-    \caption{A sketch of the structure of the Dominant network is shown. Taken from \cite[Fig.1]{dingDeepAnomalyDetection2019}}
+    \caption{A sketch of the structure of the Dominant network is shown. The shown number of layers and activation functions do not necesarrily reflect the ones used in the following, as different test have been performed. Taken from \cite[Fig.1]{dingDeepAnomalyDetection2019}}
     \label{fig:Dominant}
 \end{figure}
-A training set of graphs with outliers is first input into the Encoder. 
-This encoder consists of Message passing layers that reduce in feature dimensionality until the bottleneck is reached. 
-The graph data is maximally compressed into a so called Embedding Vector $z$. 
+A training set of graphs with outliers is first input into the encoder. 
+This encoder consists of message passing layers that reduce in feature dimensionality until the bottleneck is reached. 
+The graph data is maximally compressed into a so called embedding vector $z$. 
 This is then decoded in two different decoders: 
-The Structure Reconstruction Decoder aims to reproduce the input adjacency matrix \todo{whats an adj matrix} (consisting of edges and their features) of the graph. 
+The structure reconstruction decoder aims to reproduce the input adjacency matrix, which is a possible reprensentation of the edges and their features in a graph. 
 This is done by calculating the matrix product of the column vector $z$ with the row vector $z^T$ leading to a matrix of shape $N\cross N$ where $N$ is the number of nodes. 
 This can be interpreted as an adjacency matrix. 
-Furthermore a non-linear activation function (like a sigmoid) can be applied, if the edge features lie in the range $(0,1)$ or if there are no edge features. 
-Additionally the Attribute Reconstruction Decoder aims to reproduce the nodal features of the input graph. 
-This is done by an additional GNN which increases in feature dimensionality. 
-Usually one chooses the Encoder and Decoder network symmetrically. 
-After getting both reconstructions a loss can be calculated (this is not shown in \autoref{fig:Dominant}) with which the model is trained\cite{dingDeepAnomalyDetection2019}:
+Furthermore a non-linear activation function (like a sigmoid) can be applied.  
+Additionally the attribute reconstruction decoder aims to reproduce the nodal features of the input graph. 
+This is done by use of an additional GNN which increases in feature dimensionality. 
+In the following I choose the encoder and decoder network symmetrically. 
+After getting both reconstructions a loss can be calculated (this is not shown in \autoref{fig:Dominant}) with which the model is trained \cite{dingDeepAnomalyDetection2019}:
 \begin{equation}
     \label{eq:dominant loss}
-    \mathcal{L} = (1-\alpha) \left\lVert A-\hat{A} \right\rVert _F^2 + \alpha  \left\lVert X-\hat{X} \right\rVert _F^2
+    \mathcal{L} = (1-\alpha) \left\lVert A-\hat{A} \right\rVert _F + \alpha  \left\lVert X-\hat{X} \right\rVert _F
 \end{equation}
-Here $\alpha$ is a fixed hyperparamter weighting the Attribute versus the Reconstruction loss, $A$ and $\hat{A}$ are the input and reconstructed adjacency matrices, $X$ and $\hat{X}$ the input and recostructed node feature matrices and the symbol $\left\lVert\cdot  \right\rVert _F$ represents the Frobenius norm. 
+Here $\alpha$ is a fixed hyperparamter weighting the attribute versus the reconstruction loss, $A$ and $\hat{A}$ are the input and reconstructed adjacency matrices, $X$ and $\hat{X}$ the input and recostructed node feature matrices and the symbol $\left\lVert\cdot  \right\rVert _F$ represents the Frobenius norm. 
+Note that compared to \cite{dingDeepAnomalyDetection2019} I have omitted squaring the norms as this would have lead to extremely large losses which would have needed additional normalisation to achieve a good convergence without offering any benefit. 
 
 Once training is deemed sufficient, a final anomaly score can be calculated for each node $i$ to evalute the model \cite{dingDeepAnomalyDetection2019}:
 \begin{equation}
@@ -361,6 +388,53 @@ Here $a_i$, $\hat{a}_i$, $x_i$, $\hat{x}_i$ represent the rows of the matrices $
 Note that while \autoref{eq:dominant loss} and \autoref{eq:dominant score} look rather similar, they are not quite the same. 
 The loss function copmputes a single scalar loss for each input graph and is used during training. 
 The score function computes one scalar anomaly score for each node in the graph and is only used for the defect prediction at the end, as larger anomaly scores represent a higher probability of the node beeing an outlier. 
+
+\subsubsection{Results}
+I performed multiple tests with differently structured layers, activation functions, learning rates $\eta$, loss weight $\alpha$, dropout and data paramters. 
+These I will present in the following to show, that no matter the chosen hyperparamters the training and performance of the NN is bad. 
+In a first step $\eta$ and the use of dropout was varied, after which the best features, activation functions, network structure and $\alpha$ were explored in subsequent tests. 
+When varying one or two related parameters the others were kept fixed. 
+All hyperparameters for the different tests A-E are tabularised in \autoref{label} for referencing them in \autoref{label} \todo{figures}. 
+
+\begin{table}[htbp]
+    \centering
+    \begin{tabular}{c|c|c|c|c|c|c|c|c|c}
+        test & layers & structure & A-act. & S-act. & $\eta$ & DO & $\alpha$ & NN & BOO \\\hline\hline
+        A1 & GINE & 6432 & $\sigma$ & ReLu & 0.001 & \no & 0.5 & \yes & \yes \\\hline
+        A2 & - & - & - & - & 0.005  & -  & - & - & - \\\hline
+        A3 & - & - & - & - & 0.01   & -  & - & - & - \\\hline
+        A4 & - & - & - & - & 0.0005 & \yes & - & - & - \\\hline
+        A5 & - & - & - & - & \cellcolor{black!20} 0.001  & \cellcolor{black!20} \yes & - & - & - \\\hline
+        A6 & - & - & - & - & 0.003  & - & - & - & - \\\hline
+        A7 & - & - & - & - & 0.005  & - & - & - & - \\\hline
+        A8 & - & - & - & - & 0.01   & - & - & - & - \\\hline\hline
+        B1 & GINE & 6432 & $\sigma$ & ReLu & 0.001 & \yes & 0.5 & \cellcolor{black!20}\yes & \cellcolor{black!20}\yes \\\hline
+        B2 & - & - & - & - & - & - & - & \no & \yes \\\hline
+        B3 & - & - & - & - & - & - & - & \no & no $l=2$ \\\hline\hline
+        C1 & GCN & 6432  &  ReLu & ReLu & 0.001 & \yes & 0.5 & \yes & \yes \\\hline
+        C2 & - & 6543  &   -   &  -   &   -   &  -   &  -  &  -   &  -   \\\hline
+        C3 & \cellcolor{black!20}GCN &\cellcolor{black!20} 6531  &   -   &  -   &   -   &  -   &  -  &  -   &  -   \\\hline
+        C4 & - & 65432 &   -   &  -   &   -   &  -   &  -  &  -   &  -   \\\hline
+        C5 & GINE& 6432  &$\sigma$& ReLu & 0.001 & \yes & 0.5 & \yes & \yes \\\hline
+        C6 & -& 6543  &   -   &  -   &   -   &  -   &  -  &  -   &  -   \\\hline
+        C7 & -& 6531  &   -   &  -   &   -   &  -   &  -  &  -   &  -   \\\hline
+        C8 & -& 65432 &   -   &  -   &   -   &  -   &  -  &  -   &  -   \\\hline\hline
+        D1 & GCN & 6432 &$\sigma$&$\sigma$& 0.001 & \yes & 0.5 & \yes & \yes \\\hline
+        D2 &  -  &  -   &$\sigma$& none  &   -   &  -   &  -  &  -   &  -   \\\hline
+        D3 &  -  &  -   &\cellcolor{black!20}  ReLu  & \cellcolor{black!20} ReLu  &   -   &  -   &  -  &  -   &  -   \\\hline
+        D4 &  -  &  -   & ReLu  & none  &   -   &  -   &  -  &  -   &  -   \\\hline
+        D5 &  -  &  -   & ReLu  &$\sigma$&   -   &  -   &  -  &  -   &  -   \\\hline\hline
+        E1 & GCN & 6432 & ReLu & ReLu & 0.001 & \yes & 0.3 & \yes & \yes \\\hline
+        E2 &  -  &  -   &  -   &  -   &   -   &   -  &\cellcolor{black!20} 0.4 &   -  & -    \\\hline
+        E3 &  -  &  -   &  -   &  -   &   -   &   -  & 0.5 &   -  & -    \\\hline
+        E4 &  -  &  -   &  -   &  -   &   -   &   -  & 0.6 &   -  & -    \\\hline
+        E5 &  -  &  -   &  -   &  -   &   -   &   -  & 0.7 &   -  & -    \\\hline\hline
+    \end{tabular}
+    \caption{Listed are the used hyperparamters for each test A-E. Each row corresponds to one network/data-comnbination that was used for training 5 times 50 epochs which were then averaged to produce the curves in . "-" means the parameter is the same as in the row above. Cells with grey background indicate the best results of each test. The columns represent from left to right: The used layer (either GINEConv or GCNConv), the dimensionality of the encoder layers with mirrored decoder (e.g. 6432 means the input node feature vector of dimension 6 is reduced to a hidden feature vector of dimension 4 in the first, 3 in the second hidden layer and 2 in the bottleneck), the attribute (A-act.) and structure (S-act.) decoder activation function, the learning rate, whether a dropout with probability 0.5 was used, the loss weighting, whether the number of nearest neighbors (NN) or the bond orientational order parameter (BOO) have been used as features.}
+    \label{tab:hyperparameters defect detection}
+\end{table}
+\todo{refs}
+\todo{check alpha 0.4 or 0.3}
 
 
 \section{Results so far}
