@@ -388,13 +388,14 @@ Here $a_i$, $\hat{a}_i$, $x_i$, $\hat{x}_i$ represent the rows of the matrices $
 Note that while \autoref{eq:dominant loss} and \autoref{eq:dominant score} look rather similar, they are not quite the same. 
 The loss function copmputes a single scalar loss for each input graph and is used during training. 
 The score function computes one scalar anomaly score for each node in the graph and is only used for the defect prediction at the end, as larger anomaly scores represent a higher probability of the node beeing an outlier. 
+\todo{how final score}
 
 \subsubsection{Results}
 I performed multiple tests with differently structured layers, activation functions, learning rates $\eta$, loss weight $\alpha$, dropout and data paramters. 
 These I will present in the following to show, that no matter the chosen hyperparamters the training and performance of the NN is bad. 
-In a first step $\eta$ and the use of dropout was varied, after which the best features, activation functions, network structure and $\alpha$ were explored in subsequent tests. 
+In a first step $\eta$ and the use of dropout was varied, after which the best features, network structure, activation functions and $\alpha$ were explored in subsequent tests. 
 When varying one or two related parameters the others were kept fixed. 
-All hyperparameters for the different tests A-E are tabularised in \autoref{label} for referencing them in \autoref{label} \todo{figures}. 
+All hyperparameters for the different tests A-E are tabularised in \autoref{tab:hyperparameters defect detection} for referencing them in \autoref{label} \todo{figures}. 
 
 \begin{table}[htbp]
     \centering
@@ -435,6 +436,45 @@ All hyperparameters for the different tests A-E are tabularised in \autoref{labe
 \end{table}
 \todo{refs}
 \todo{check alpha 0.4 or 0.3}
+
+As mentioned in a first test the influence of the learning rate $\eta$ and the use of dropout were examined. 
+To make matters easier a dropout with fixed probability of 0.5 has been applied between each layer during training. 
+For evaluation this dropout is automatically switched off. 
+For this first test it seemed best to supply the entwork with maximal information, which is why all node features (BOO of order $l=2,4,6,8,10$ and the number of neighbors) were used as well as the length of edges as edge features. 
+Because edge features are used, GINEConv layers are employed (They support edge features in contrast to GCNConv) in a structure of 6432, meaning the input vector dimensinality is reduced from 6 to 4 to 3 to 2 in the encoder and increased again symmetrically in the attribute decoder. 
+As activation a sigmoid was used after each hidden layer for the attribute reconstruction (taking care not to apply a sigmoid to the oputput) and a ReLu function was used for the structure decoder (which seemed sensible as the adjacency matrix can have values bigger then 1 because of the edge features). 
+All these choices are also listed in \autoref{tab:hyperparameters defect detection} and will therefore be discussed less extensive for the following tests. 
+Now the network was run for larger and smaller $\eta$ in combination with dropout or without dropout for 5 times 50 epochs. 
+Each training epoch the network was evaluated by calculating its loss and detection score based on a test sample that was not used prior in training.
+These curves are then averaged over the mentioned 5 random network initialisations to get a more robust and comparable result, as single runs have proven themselfes to be very dependent of initalisation. 
+The results are shown in \autoref{fig:defect detection A}, where one can see that the network performes best, if dropout and $\eta=0.001$ is implemented. 
+\begin{figure}[htbp]
+    \centering
+    \includegraphics{images/plots/defect_detection_A.pdf}
+    \caption{Shown are the test results for Test A. For a listing of hyperparamters see \autoref{tab:hyperparameters defect detection}.}
+    \label{fig:defect detection A}
+\end{figure}
+However, the central problem that will alos govern the tests shown in the following also becomes apparent. 
+While the loss is minimized quite well by the network and a stable loss is reached after around 50 epochs indicating the network has trained all it can given the input network and data parameters, the score behaves quite differently. 
+Namely there are two problems. 
+First of all it is immediately apparent that the score does not increase steadily with falling loss. 
+Rather it increases and decreases seemingly at random even for the "optimal" parameter choice shown in red. 
+\todo{is the score statistically compatible with a random walk?}
+Secondly one can see the score already starts on quite a high level of roughly 50\% correct guesses. 
+As the score is determined by the percentage of test graphs where the true anomalous node is within the top five highest anamoly scores however and there are roughly 100 nodes in each graph the initial score should be much lower if the network would just perform a random guess. 
+This indicates the network in its untrained state is in fact not performing random guesses but rather there is a systematic component "pushing" the network towards the right guess even when all weights are initialised randomly. 
+I reason this follows from the nature of how the anomolous node affects the graph and therefore also the network structure. 
+Firstly a spurous node increases connectivity around it as it increases local density and with that the amount of connected nodes as they are determined by connecting all nodes within a said radius. 
+In the message passing layers this highly connected node now receives more messages that are also different from those other more regular nodes receive. 
+The number of neighbors for instance is higher on average, while the edge length is lower and the BOO also differs in all orders. 
+I assume that this increases the mean squared reconstruction error of this node on average even for a random initialisation and therefore leads to a slightly higher anomaly score in a local neighborhood around the anomolous node. 
+This in turn leads to the fact that the network has quite well performance from the start. \\
+
+What I want to stress however is that this high score is not a good thing. 
+It just stems from systematics that indicate that a machine learning approach with this architecture is not well suited for defect detection as learning is the facto not needed. 
+This further indicates that there might be a simpler algorithm that uses a structure similar to the dominant network but can work completely without training just from the connectivity and feature space of the graph itself. 
+
+
 
 
 \section{Results so far}
