@@ -7,5 +7,5 @@ defect_graphs/
 autoencoder_graphs/
 autoencoder_2d/
 .vscode/
-# tests/
-# latex/
+tests/
+latex/

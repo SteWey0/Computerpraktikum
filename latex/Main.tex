@@ -128,7 +128,7 @@ pdfborder = {0 0 0}
     \LARGE \bf{Structure recognition with graph neural networks} \\
 
     \vspace*{2cm}
-    \large \bf{An intermediate report for the course "Advanced Projects in Computational Physics 2"}
+    \large \bf{A report for the course "Advanced Projects in Computational Physics 2"}
 
 
     \vspace{4cm}
@@ -146,10 +146,10 @@ pdfborder = {0 0 0}
 \clearpage
 
 \begin{abstract}
-The project described in the following lies at the intersection of solid-state physics and machine learning. On the one hand, there is a physical problem regarding crystal lattices in 2 and 3 dimensions, namely their classification into Bravais lattice groups and defect detection. For an efficient and robust classification regardless of noise and introduced defects, neural networks promise an interesting approach to this goal and will therefore be the second part of this project. Special networks designed for handling graph-like structures, so-called Graph convolutional networks are employed. These use a concept called message passing to efficiently enable classification tasks. \\
+The project described in the following lies at the intersection of solid-state physics and machine learning. On the one hand, there is a physical problem regarding crystal lattices in 2 and 3 dimensions, namely their classification into Bravais lattice groups and defect detection. For an efficient and robust classification regardless of noise and introduced defects, neural networks promise an interesting approach and will therefore be the second part of this project. Special networks designed for handling graph-like structures, so-called graph convolutional networks are employed. These use a concept called message passing to efficiently enable classification tasks. \\
 
-The basics behind Bravais lattices, Machine Learning and Graph neural networks are discussed in \autoref{sec:Theoretical introduction}. 
-In \autoref{sec:Results} these networks are first used for a graph-level classification task in order to gain familiarity with the architecture. After this an advanced application is discussed by building a graph autoencoder for outlier detection. While for the first task test accuracies of around 94\% (2D) and 87\% (3D) have been reached the second task has proven itself to be challenging. Different tests are therefore performed, analyzed and discussed. 
+The basics behind Bravais lattices, Machine Learning and graph neural networks are discussed in \autoref{sec:Theoretical introduction}. 
+In \autoref{sec:Results} these networks are first used for a graph-level classification task in order to gain familiarity with the architecture. After this an advanced application is discussed: building a graph autoencoder for outlier detection. While for the first task test accuracies of around 94\% (2D) and 87\% (3D) have been reached the second task has proven itself to be challenging. Different tests are therefore performed, analyzed and discussed. 
 In \autoref{sec:Conclusion} a conclusion is drawn, summarizing the achievements of the project and ideas for further investigations. 
 \end{abstract}
 
@@ -220,7 +220,7 @@ The general idea is that each neuron takes as input the "signals" from every neu
 \label{eq:NN weighted sum}
 x^{(l)}_j = f\left(\sum_i w_{ij}^{(l-1)} \cdot x^{(l-1)}_i + b_j^{(l-1)}\right)
 \end{equation}
-Here the weighted sum is further modified by a layer-dependent bias vector $ b^{(l-1)}$. 
+Here the weighted sum is further modified by a layer-dependent bias vector $ b_j^{(l-1)}$. 
 Furthermore, the aggregated "signal" is usually modified by a non-linear activation function $f$. 
 Using the above update rule it is now clear, that a forward pass through the model can be accomplished by supplying an input vector $x^{(1)}_i$ and using \autoref{eq:NN weighted sum} iteratively to achieve an output at the final layer $n$, $x^{(n)}_i$. \\
 
@@ -273,7 +273,7 @@ In the following graph classification is used, which means all feature vectors a
 In the following, I will give a chronological overview of the topics I worked on during this project. 
 This started with the generation of training data, namely Bravais lattices in two and three dimensions. After this, I worked on Bravais lattice classification of noisy and defective lattices to gain familiarity with the GNN architecture and a Machine Learning library. Lastly, I worked on defect detection using Graph Autoencoders. 
 
-\subsection{Generation of Training data}
+\subsection{Generation of training data}
 \label{ssec:Generation of training data}
 As a first step, Bravais lattices in two dimensions (2D) and three dimensions (3D) needed to be created. 
 For this, ideal Bravais lattices with unit spacing between nodes are created in a first step. 
@@ -324,7 +324,7 @@ Each graph was equipped with a one-hot-encoded label representing the Bravais la
 Additionally, I tested two different layer types, namely GCNConv \cite{pygteamGCNConv2025} and GINEConv layers \cite{pygteamGINEConv2024}. 
 I performed both tests as GINEConv layers support edge features in contrast to GCNConv layers and I wanted to gain familiarity with both architectures. 
 If edge features were used, I chose for them the length of each edge. 
-An example showing how 2D and 3D graphs look is shown in \autoref{fig:2d 3d lattice}. 
+An example showing how 2D and 3D graphs look like is shown in \autoref{fig:2d 3d lattice}. 
 
 \begin{figure}[htbp]
     \centering
@@ -350,7 +350,7 @@ The results of training are shown in \autoref{fig:bravais classification 2d}.
 \begin{figure}[htbp]
     \centering
     \includegraphics{images/plots/2d_classifier_results.pdf}
-    \caption{The resulting test accuracy for the different network architectures is shown. For this five random initializations were run (light curves) and then averaged (dark curves). It is apparent that GINEConv layers work better. }
+    \caption{The resulting test accuracy for the different network architectures is shown. For this five random initializations were run (translucent curves) and then averaged (dark curves). It is apparent that GINEConv layers work better. }
     \label{fig:bravais classification 2d}
 \end{figure}
 It is clearly visible that GINEConv layers perform better than GCNConv layers. 
@@ -366,16 +366,16 @@ The training results are shown in \autoref{fig:bravais classifacation 3d}.
 \begin{figure}[htbp]
     \centering
     \includegraphics{images/plots/3d_classifier_results.pdf}
-    \caption{The training results of the 3D Bravais lattice classification are shown. GCNConv and GINEConv 1 tests were performed with BOO and the number of neighbors as node attributes. Furthermore, a test with the features chosen at the time of the intermediate report is shown as GINEConv 2. For this different features were chosen. As edge features the 3D connection vectors (not lengths) were chosen and for node attributes only the number of neighbors was used. It is visible that this configuration performs best.}
+    \caption{The training results of the 3D Bravais lattice classification are shown. GCNConv and GINEConv 1 tests were performed with the BOO and the number of neighbors as node attributes. Furthermore, a test with the same features as chosen at the time of the intermediate report is shown as GINEConv 2. As edge features the 3D connection vectors (not lengths) were chosen and for node attributes only the number of neighbors was used. It is visible that this configuration performs best.}
     \label{fig:bravais classifacation 3d}
 \end{figure}
 Again, the best results were achieved by using GINEConv layers due to priorly mentioned reasons. 
 However, as the test accuracy was not quite satisfactory ($81.1\%$) I performed additionally a test with the graph features that I chose at the time of the intermediate report, corresponding to the green curve in \autoref{fig:bravais classifacation 3d}. 
 For this the edge features were chosen to be the connection vectors instead of their length, and the node features were reduced to only encompassing the number of neighbors. 
-The network setup adn training remained exactly the same. 
+Other than that, the network setup and training remained exactly the same. 
 This achieved a much better accuracy of $87.4\%$ indicating that the BOO in 3D is less meaningful than in 2D at least when it comes to lattice classification. 
 This fits to the less variable BOO in 3D observed in \autoref{fig:2d 3d lattice}. 
-However, when not using the BOO the network still performs rather well, especially considering that in 3D there exist 14 classes instead of only 5 and the false positive rate (the network by chance guesses the correct class) is expected to be much lower. 
+In summary, when not using the BOO the network still performs rather well, especially considering that in 3D there exist 14 classes instead of only 5 and the false positive rate (the network by chance guesses the correct class) is expected to be much lower. 
 Therefore, also 3D Bravais lattice classification can be deemed successful. 
 
 \subsection{Defect detection}
@@ -395,7 +395,7 @@ Per graph, one defect was added by adding a node at a random position.
 This defect node is different from the others both on a structural level, because it has higher connectivity than the rest of the graph, but also on an attribute level. 
 This is because it breaks symmetry which has an influence on the BOO, additionally, on average, the length of connected edges is smaller and the number of neighbors higher. 
 As mentioned noise was not added for the following tests to make it even easier for the network to detect the outlier node. 
-In \autoref{fig:features_2d_lattices} a few lattices are shown together with their feature space to illustrate how the features differ between the anomalous node and the more regular ones. 
+In \autoref{fig:features_2d_lattices} a few lattices are shown together with their feature space to illustrate how the features differ between the anomalous node and the more regular ones. \\
 
 \begin{figure}[htbp]
     \centering
@@ -414,7 +414,7 @@ As the learning rate, activation functions, and the number of neurons and layers
 \subsubsection{The Dominant Architecture}
 I was tasked to implement the Dominant network as described in \cite{dingDeepAnomalyDetection2019}. 
 This network uses a graph autoencoder i.e. an autoencoder consisting of message passing layers to handle graphs. 
-Autoencoders are a special kind of neural network that utilizes unsupervised training. 
+Autoencoders are a special kind of neural network that utilize unsupervised training. 
 The goal of this type of network is to reconstruct the input data as best as possible. 
 This task would be trivial if it were not for an important feature of autoencoders: 
 The hidden layers reduce in dimensionality until a minimum number of trainable parameters is reached at the so-called bottleneck after which the dimensionality again increases until the input dimensionality. 
@@ -422,13 +422,13 @@ It is expected that this compression and decompression works better for large-sc
 A sketch of the structure of the Dominant network is shown in \autoref{fig:Dominant}.
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.8\textwidth]{images/ding_1.png}
+\includegraphics[width=\textwidth]{images/ding_1.png}
 \caption{A sketch of the structure of the Dominant network is shown. The shown number of layers and activation functions do not necessarily reflect the ones used in the following, as different tests have been performed. Taken from \cite[Fig.1]{dingDeepAnomalyDetection2019}}
 \label{fig:Dominant}
 \end{figure}
 A training set of graphs with outliers is first input into the encoder, this is represented by the graph on the left of \autoref{fig:Dominant}. 
 This attributed network encoder consists of message-passing layers that reduce in feature dimensionality until the bottleneck is reached. 
-The graph data is maximally compressed into so-called embedding vectors $z$. 
+The graph data is maximally compressed into so-called embedding vectors $z$, which can be interpreted as a matrix. 
 This is then decoded in two different decoders (see \autoref{fig:Dominant}): 
 The structure reconstruction decoder aims to reproduce the input adjacency matrix, which is a possible representation of the edges and their features in a graph. 
 This is done by calculating the matrix product of the matrix $z$ with the matrix $z^T$ leading to a matrix of shape $N\cross N$ where $N$ is the number of nodes. 
@@ -598,7 +598,7 @@ However, again the previously mentioned issues with the score curves are visible
 
 As a last test, I varied the $\alpha$ parameter. 
 Looking at the calculation of the loss and score function in \autoref{eq:dominant loss} and \autoref{eq:dominant score} it becomes clear that $\alpha$ varies the weight of structure reconstruction loss over the attribute reconstruction loss and score. 
-The test curves shown in \autoref{fig:defect detection E} indicate the best performance for $\alpha=0.4$ (E2) as it performs only slightly worse than $\alpha=0.3$ (E1) but seems to be more stable. 
+The test curves shown in \autoref{fig:defect detection E} indicate the best performance for $\alpha=0.4$ (E2) as it performs only slightly worse than $\alpha=0.3$ (E1) but seems to be more stable. \\
 
 \begin{figure}[htbp]
 \centering
@@ -624,7 +624,7 @@ That learning still does not work therefore again indicates that the Dominant-ar
 \section{Conclusion}
 \label{sec:Conclusion}
 In \autoref{ssec:Bravais lattice classification} I worked on Bravais lattice classification of 2D and 3D lattices. 
-For this I generated noisy lattices according to the 5 (or 14 in 3D) Bravais groups, introduced defects and labelled them by use of a one hot encoding. 
+For this I generated noisy lattices according to the 5 (or 14 in 3D) Bravais groups, introduced defects and labelled them by using one hot encoding. 
 In the 2D case I performed tests with GCNConv and GINEConv graph convolutional layers and achieved maximum training prediction accuracies of roughly $94\%$ by using comparably small graphs consisting of roughly 25 nodes and a shallow network with only two hidden layers. 
 In 3D, I was able to reach an accuracy of roughly $87\%$ by using graphs consisting of around 125 nodes and a network with 3 hidden layers. 
 I showed how the BOO in 3D is less suited for the lattice classification than that in 2D. 
@@ -644,7 +644,7 @@ Additionally, it would be interesting to compare the performance of the Dominant
 Node prediction with one hot encoded node labels, i.e. the use of supervised learning, seem a promising alternative as the issue of having separate loss and score functions could be mitigated. 
 I could imagine that solving this separation a rising score could be linked more closely to a falling loss (which is as mentioned before not really the case with the Dominant network). \\
 
-In summary the work presented here show that GNNs are in principle well suited for work with crystal lattices. The positive and especially negative results shown motivate further projects in lattice classification and defect detection and lay the groundwork for these by discussing approaches for lattice generation, feature choice and network architecture.
+In summary the work presented here shows that GNNs are in principle well suited for work with crystal lattices. The positive and especially negative results shown motivate further projects in lattice classification and defect detection and lay the groundwork for these by discussing approaches for lattice generation, feature choice and network architecture.
 
 
 \section{Code availability}
