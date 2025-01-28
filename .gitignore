@@ -2,7 +2,10 @@ pytorch_examples/
 graphs/
 plane_graphs/
 __pycache__/
-3D_graphs/
+3d_graphs/
 defect_graphs/
 autoencoder_graphs/
 autoencoder_2d/
+.vscode/
+# tests/
+# latex/
